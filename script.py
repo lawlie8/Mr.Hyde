@@ -4,6 +4,7 @@ from tkinter import *
 from tkinter.ttk import *
 from Crypto import Random
 from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
 import os
 import os.path
 from os import listdir
@@ -11,9 +12,13 @@ from os.path import isfile, join
 import time
 import ctypes
 import threading
+import hashlib
+import random
+import binascii
 def main():
     
     def initilise():
+        os.system('mkdir .hydefiles')
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
         global label,window
         
@@ -37,14 +42,15 @@ def main():
         label1.pack()
         open_files_button = tk.Button(text='Select Files',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=open_files,master=window)
         open_files_button.pack(anchor='nw',pady=50,padx=10,side='left')
-        encrypt_button = tk.Button(text='Encrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=encrypt_section,master=window)
+        password_entry = tk.Entry(width=15,show='*')
+        password_entry.place(x=600,y=82,height=42)
+        
+        encrypt_button = tk.Button(text='Encrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=lambda:encrypt_section(password_entry),master=window)
         encrypt_button.place(x=910,y=82)   
-        decrypt_button = tk.Button(text='Decrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=decrypt_section,master=window)
+        decrypt_button = tk.Button(text='Decrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=lambda:decrypt_section(password_entry),master=window)
         decrypt_button.place(x=770,y=82)
         password_label = tk.Label(text='Password',fg='#d6d6c2',bg='#333338')
         password_label.place(x=500,y=85)
-        password_entry = tk.Entry(width=15,show='*')
-        password_entry.place(x=600,y=82,height=42)
         
         setting_button = tk.Button(text='setting',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=5,fg='white',bg='#338237',command=lambda :setting_window(check_file))#,master=window)
         setting_button.place(x=980,y=12,height=30)
@@ -53,22 +59,23 @@ def main():
     def open_files():
         from tkinter import filedialog
         
-        global window_filename,enc_file_list
+        global window_filename,enc_file_list,mylist
         enc_file_list = []
-        window_filename =  filedialog.askopenfilenames(initialdir = "/",title = "Select file",filetypes = (("jpeg files","*.jpg"),("all files","*.*")))
+        window_filename =  filedialog.askopenfilenames(initialdir = "/",title = "Select file",filetypes = (("jpeg files","*.jpg"),("enc files","*.enc"),("all files","*.*")))
         enc_file_list.append(window_filename)
         file_to_encrypt_label = tk.Label(text='Files to Encrypt',justify='left',fg='#d6d6c2',bg='#333338')
-        file_to_encrypt_label.place(x=70,y=130)
+        file_to_encrypt_label.place(x=70,y=125)
         enc_file_scroll = tk.Scrollbar(window,width=16,elementborderwidth=0,highlightcolor='green',bg='green',bd=0,activebackground='green')
-        enc_file_scroll.place(x='975',y='170',height=185)#anchor='w',fill='y',side='right',pady=50,padx=20)
+        enc_file_scroll.place(x='975',y='160',height=185)#anchor='w',fill='y',side='right',pady=50,padx=20)
         mylist = Listbox(window,width='90',height='7',yscrollcommand=enc_file_scroll.set,bg='green',bd=0,fg='#d6d6c2')
         for i in window_filename:
             mylist.insert(END,'   ' + i)
-        mylist.place(x='65',y='170')
+        mylist.place(x='65',y='160')
         enc_file_scroll.config(command=mylist.yview)
         mainloop()
     
     def setting_window(check_file):
+        global default_password_entry,setting
         check_file = open('hyde.law','r+')
         check_file_lines = check_file.readlines()
         setting_flag = check_file_lines[0]
@@ -107,13 +114,142 @@ def main():
             setting.protocol('WM_DELETE_WINDOW',on_closing)
             window.protocol('WM_DELETE_WINDOW',close_everything)
 
-            
+    def get_default_password_section(default_password_file_list):
+        global default_key
+        default_key = ''
+        for file,sun in zip(default_password_file_list,range(0,8)):
+            file_extract = open(file,'r+')
+            file_extract = file_extract.readlines()
+            bun= sun * 8
+            default_key = default_key  + file_extract[0][bun:bun+8]
+        return default_key
+        #print(key)
+
+    
     def set_default_password_section():
-        print('setting default password')
-    def encrypt_section():#Encrypt Files
-        print(window_filename)
-    def decrypt_section():#Decrypt Files
-        print(window_filename)
+        global default_password_file_list
+        default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
+        default_password = default_password_entry.get()
+        if default_password != '':
+            default_password = str(default_password)
+            default_key = hashlib.sha256(default_password.encode('utf-8')).hexdigest()
+            hex_list = ['a','b','c','d','e','f','1','2','3','4','5','6','7','8','9','0']
+            
+            #print(default_key)
+            #print(default_password)
+            for file,sun in zip(default_password_file_list,range(0,8)):
+                seti = ''
+                for bill in range(0,65):
+                    seti = random.choice(hex_list) + seti
+                
+                #print(seti)
+                seti2 = seti
+                #for sun in range(0,8):
+                if sun == 0:
+                    bun = sun * 7
+                    seti = default_key[bun:bun+8] + seti2[9:65]
+                    default_password_file = open(file,'w+')
+                    default_password_file.write(seti)
+                    default_password_file.close()
+                    #print(seti)
+                else:
+                    bun2 = sun * 8
+                    seti = seti2[0:bun2]+ default_key[bun2:bun2+8] + seti2[bun2+9:65]
+                    #print(seti)
+                    default_password_file = open(file,'w+')
+                    default_password_file.write(seti)
+                    default_password_file.close()
+            #print('setting default password')
+        #time.sleep(1)
+        check_file = open('hyde.law','w+')
+        check_file.write('setting_window_off')
+        check_file.close()
+        setting.destroy()
+        get_default_password_section(default_password_file_list)
+    def encrypt_section(password_entry):#Encrypt Files
+        default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
+        #IV = 16 * '\x00'
+        #mode = AES.MODE_CBC
+        
+        password_entry_for_encryption = password_entry.get()
+        def pad(s):
+            return s + b"\0" * (AES.block_size - len(s) % AES.block_size)
+            
+        
+        
+        if password_entry_for_encryption == '':
+            key = get_default_password_section(default_password_file_list)
+            key = binascii.unhexlify(key)
+            #print(key)
+        else:
+            key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).digest()
+        progress = Progressbar(window,orient=HORIZONTAL,length=926,mode='determinate')
+        progress.place(anchor='w',x=65,y=360)
+        prog = 100 / len(window_filename)
+        for file_to_encrypt in window_filename:
+            progress['value'] = prog
+            window.update_idletasks()
+            prog = prog + prog
+            fh = open(file_to_encrypt,'rb')
+            message = fh.read()
+            fh.close()
+            message = pad(message)
+            iv = Random.new().read(AES.block_size)
+            cipher = AES.new(key,AES.MODE_CBC,iv)
+            encrypted_text = iv + cipher.encrypt(message)
+            fh = open(file_to_encrypt + '.enc','wb')
+            fh.write(encrypted_text)
+            fh.close()
+            os.remove(file_to_encrypt)
+            #print(file_to_encrypt)
+        mylist.delete(0,END)
+        progress.place_forget()
+        password_entry.delete(0,END)
+        #window_filename = {}
+        
+        
+    def decrypt_section(password_entry):#Decrypt Files
+        def unpad(s):
+            return s[:-ord(s[len(s)-1:])]
+
+        default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
+        password_entry_for_encryption = password_entry.get()
+        if password_entry_for_encryption == '':
+            key = get_default_password_section(default_password_file_list)
+            key = binascii.unhexlify(key)
+            #print(key)
+        else:
+            key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).digest()
+
+            #key = password_entry_for_encryption
+        progress = Progressbar(window,orient=HORIZONTAL,length=926,mode='determinate')
+        progress.place(anchor='w',x=65,y=360)
+        prog = 100 / len(window_filename)
+        
+        for file_to_decrypt in window_filename:
+            progress['value'] = prog
+            window.update_idletasks()
+            prog = prog + prog
+            fd = open(file_to_decrypt,'rb')
+            message = fd.read()
+            fd.close()
+            iv = message[:AES.block_size]
+            cipher = AES.new(key,AES.MODE_CBC,iv)
+            plaintext = cipher.decrypt(message[AES.block_size:])
+            write_message = plaintext.rstrip(b"\0")
+            remove_file = file_to_decrypt
+            file_to_decrypt = file_to_decrypt[0:-4]
+            fd = open(file_to_decrypt,'wb')
+            fd.write(write_message)
+            fd.close()
+            os.remove(remove_file)
+        
+        mylist.delete(0,END)
+        progress.place_forget()
+        password_entry.delete(0,END)
+        #window_filename = {}
+            
+        #print(window_filename)
     initilise() #initialise window 
     label.after(3000,clear_label) #app_name label intro
     
@@ -123,10 +259,4 @@ check_file = open('hyde.law','w+')
 check_file.write('setting_window_off')
 check_file.close()    
 main()
-    
 
-
-
-
-
-    #enc = Encryptor(key)
