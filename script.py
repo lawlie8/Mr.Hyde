@@ -45,13 +45,14 @@ def main():
         password_entry = tk.Entry(width=15,show='*')
         password_entry.place(x=600,y=82,height=42)
         
-        encrypt_button = tk.Button(text='Encrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=lambda:encrypt_section(password_entry),master=window)
+        encrypt_button = tk.Button(text='Encrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=lambda:encrypt_section(password_entry,select_files_label),master=window)
         encrypt_button.place(x=910,y=82)   
-        decrypt_button = tk.Button(text='Decrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=lambda:decrypt_section(password_entry),master=window)
+        decrypt_button = tk.Button(text='Decrypt',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=12,fg='white',bg='#338237',command=lambda:decrypt_section(password_entry,select_files_label),master=window)
         decrypt_button.place(x=770,y=82)
         password_label = tk.Label(text='Password',fg='#d6d6c2',bg='#333338')
         password_label.place(x=500,y=85)
-        
+        select_files_label = tk.Label(text='files not selected',fg='#d6d6c2',bg='#333338')
+        select_files_label.place(x=460,y=220)
         setting_button = tk.Button(text='setting',activebackground='black',highlightcolor='black',bd=1,relief='flat',height=0,width=5,fg='white',bg='#338237',command=lambda :setting_window(check_file))#,master=window)
         setting_button.place(x=980,y=12,height=30)
         
@@ -166,87 +167,156 @@ def main():
         check_file.close()
         setting.destroy()
         get_default_password_section(default_password_file_list)
-    def encrypt_section(password_entry):#Encrypt Files
-        default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
-        #IV = 16 * '\x00'
-        #mode = AES.MODE_CBC
-        
-        password_entry_for_encryption = password_entry.get()
-        def pad(s):
-            return s + b"\0" * (AES.block_size - len(s) % AES.block_size)
+    def encrypt_section(password_entry,select_files_label):#Encrypt Files
+        try:
+            default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
+            #IV = 16 * '\x00'
+            #mode = AES.MODE_CBC
             
-        
-        
-        if password_entry_for_encryption == '':
-            key = get_default_password_section(default_password_file_list)
-            key = binascii.unhexlify(key)
-            #print(key)
-        else:
-            key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).digest()
-        progress = Progressbar(window,orient=HORIZONTAL,length=926,mode='determinate')
-        progress.place(anchor='w',x=65,y=360)
-        prog = 100 / len(window_filename)
-        for file_to_encrypt in window_filename:
-            progress['value'] = prog
-            window.update_idletasks()
-            prog = prog + prog
-            fh = open(file_to_encrypt,'rb')
-            message = fh.read()
-            fh.close()
-            message = pad(message)
-            iv = Random.new().read(AES.block_size)
-            cipher = AES.new(key,AES.MODE_CBC,iv)
-            encrypted_text = iv + cipher.encrypt(message)
-            fh = open(file_to_encrypt + '.enc','wb')
-            fh.write(encrypted_text)
-            fh.close()
-            os.remove(file_to_encrypt)
-            #print(file_to_encrypt)
-        mylist.delete(0,END)
-        progress.place_forget()
-        password_entry.delete(0,END)
-        #window_filename = {}
-        
-        
-    def decrypt_section(password_entry):#Decrypt Files
-        def unpad(s):
-            return s[:-ord(s[len(s)-1:])]
+            password_entry_for_encryption = password_entry.get()
+            
+            def pad(s):
+                return s + b"\0" * (AES.block_size - len(s) % AES.block_size)
+                
+            
+            
+            if password_entry_for_encryption == '':
+                key = get_default_password_section(default_password_file_list)
+                check_sum_key = key.lower()
+            
+                key = binascii.unhexlify(key)
+                #print(key)
+            else:
+                key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).digest()
+                check_sum_key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).hexdigest()
+            
+            hex_list = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
+            #print(a)
+            num = 0
+            for hex_i in check_sum_key:
+                for hex_b in hex_list:
+                    if hex_i == hex_b:
+                        num += hex_list.index(hex_b) 
+            
+            #print(str(num))
+            enc_counter = 0
+            progress = Progressbar(window,orient=HORIZONTAL,length=926,mode='determinate')
+            progress.place(anchor='w',x=65,y=360)
+            prog = 100 / len(window_filename)
+            for file_to_encrypt in window_filename:
+                if file_to_encrypt.endswith('.enc'):
+                    enc_counter+=1
+                    
+                else:
+                    progress['value'] = prog
+                    window.update_idletasks()
+                    prog = prog + prog
+                    fh = open(file_to_encrypt,'rb')
+                    message = fh.read()
+                    fh.close()
+                    message = pad(message)
+                    iv = Random.new().read(AES.block_size)
+                    cipher = AES.new(key,AES.MODE_CBC,iv)
+                    encrypted_text = iv + cipher.encrypt(message)
+                    fh = open(file_to_encrypt + str(num) + '.enc','wb')
+                    fh.write(encrypted_text)
+                    fh.close()
+                    os.remove(file_to_encrypt)
+                    #print(file_to_encrypt)
+            if enc_counter !=0:
+                MessageBox = ctypes.windll.user32.MessageBoxW
+                MessageBox(None, 'Already encrypted', 'Error', 0)
+            mylist.delete(0,END)
+            progress.place_forget()
+            password_entry.delete(0,END)
+            #window_filename = {}
+        except:
+            progress.place_forget()
+            try:
+                mylist.place_forget()
+            except:
+                pass
+            MessageBox = ctypes.windll.user32.MessageBoxW
+            MessageBox(None, 'Select Files First', 'Error', 0)
+            password_entry.delete(0,END)
+        finally:
+            pass
+    def decrypt_section(password_entry,select_files_label):#Decrypt Files
+        try:
+            def unpad(s):
+                return s[:-ord(s[len(s)-1:])]
 
-        default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
-        password_entry_for_encryption = password_entry.get()
-        if password_entry_for_encryption == '':
-            key = get_default_password_section(default_password_file_list)
-            key = binascii.unhexlify(key)
-            #print(key)
-        else:
-            key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).digest()
+            default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
+            password_entry_for_encryption = password_entry.get()
+            if password_entry_for_encryption == '':
+                key = get_default_password_section(default_password_file_list)
+                check_sum_key = key.lower()
+                key = binascii.unhexlify(key)
+                #print(key)
+            else:
+                key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).digest()
+                check_sum_key = hashlib.sha256(password_entry_for_encryption.encode('utf-8')).hexdigest()
 
+            hex_list = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
+            #print(a)
+            num = 0
+            for hex_i in check_sum_key:
+                for hex_b in hex_list:
+                    if hex_i == hex_b:
+                        num += hex_list.index(hex_b) 
+            
+            num = str(num).strip(' ')
+            invalid_counter = 0
             #key = password_entry_for_encryption
-        progress = Progressbar(window,orient=HORIZONTAL,length=926,mode='determinate')
-        progress.place(anchor='w',x=65,y=360)
-        prog = 100 / len(window_filename)
-        
-        for file_to_decrypt in window_filename:
-            progress['value'] = prog
-            window.update_idletasks()
-            prog = prog + prog
-            fd = open(file_to_decrypt,'rb')
-            message = fd.read()
-            fd.close()
-            iv = message[:AES.block_size]
-            cipher = AES.new(key,AES.MODE_CBC,iv)
-            plaintext = cipher.decrypt(message[AES.block_size:])
-            write_message = plaintext.rstrip(b"\0")
-            remove_file = file_to_decrypt
-            file_to_decrypt = file_to_decrypt[0:-4]
-            fd = open(file_to_decrypt,'wb')
-            fd.write(write_message)
-            fd.close()
-            os.remove(remove_file)
-        
-        mylist.delete(0,END)
-        progress.place_forget()
-        password_entry.delete(0,END)
+            progress = Progressbar(window,orient=HORIZONTAL,length=926,mode='determinate')
+            progress.place(anchor='w',x=65,y=360)
+            prog = 100 / len(window_filename)
+            
+            for file_to_decrypt in window_filename:
+                #print(str(file_to_decrypt[-7:-4]))
+                
+                if num == str(file_to_decrypt[-7:-4]):
+                    progress['value'] = prog
+                    window.update_idletasks()
+                    prog = prog + prog
+                    fd = open(file_to_decrypt,'rb')
+                    message = fd.read()
+                    fd.close()
+                    iv = message[:AES.block_size]
+                    cipher = AES.new(key,AES.MODE_CBC,iv)
+                    plaintext = cipher.decrypt(message[AES.block_size:])
+                    write_message = plaintext.rstrip(b"\0")
+                    remove_file = file_to_decrypt
+                    file_to_decrypt = file_to_decrypt[0:-7]
+                    fd = open(file_to_decrypt,'wb')
+                    fd.write(write_message)
+                    fd.close()
+                    os.remove(remove_file)
+                else:
+                    #print('key_invalid')
+                    invalid_counter +=1
+                    #entry1.delete(0,tk.END)
+            if invalid_counter != 0 :
+                MessageBox = ctypes.windll.user32.MessageBoxW
+                MessageBox(None, 'Invalid key used for '+str(invalid_counter)+' files','Error', 0)
+                progress.place_forget()
+                password_entry.delete(0,END)
+            else:
+                
+                mylist.place_forget()
+                progress.place_forget()
+                password_entry.delete(0,END)
+        except:
+            progress.place_forget()
+            try:
+                mylist.place_forget()
+            except:
+                pass
+            MessageBox = ctypes.windll.user32.MessageBoxW
+            MessageBox(None, 'Select Files First', 'Error', 0)
+            password_entry.delete(0,END)
+        finally:
+            pass
         #window_filename = {}
             
         #print(window_filename)
