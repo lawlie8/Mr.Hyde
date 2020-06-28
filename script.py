@@ -26,6 +26,10 @@ try:
     if is_admin():
 
         def initilise():
+            global check_file
+            check_file = open('hyde.law','w+')
+            check_file.write('setting_window_off')
+            check_file.close()
             os.system('mkdir .hydefiles')
             ctypes.windll.shcore.SetProcessDpiAwareness(1)
             global label,window
@@ -65,7 +69,7 @@ try:
             setting_button.place(x=980,y=12,height=30)
 
 
-        def open_files():
+        def open_files():#selects files to encrypt decrypt
             from tkinter import filedialog
 
             global window_filename,enc_file_list,mylist,enc_file_scroll,file_to_encrypt_label
@@ -85,7 +89,7 @@ try:
             enc_file_scroll.config(command=mylist.yview)
             mainloop()
 
-        def setting_window(check_file):
+        def setting_window(check_file):#setting window code
             global default_password_entry,setting
             check_file = open('hyde.law','r+')
             check_file_lines = check_file.readlines()
@@ -125,7 +129,7 @@ try:
                 setting.protocol('WM_DELETE_WINDOW',on_closing)
                 window.protocol('WM_DELETE_WINDOW',close_everything)
 
-        def get_default_password_section(default_password_file_list):
+        def get_default_password_section(default_password_file_list):#does what the function name says
             global default_key
             default_key = ''
             for file,sun in zip(default_password_file_list,range(0,8)):
@@ -137,7 +141,7 @@ try:
             #print(key)
 
 
-        def set_default_password_section():
+        def set_default_password_section():#sets default password
             os.system('mkdir .hydefiles')
             global default_password_file_list
             default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
@@ -194,7 +198,7 @@ try:
             check_file.close()
             setting.destroy()
             get_default_password_section(default_password_file_list)
-        def encrypt_section(password_entry,select_files_label):#Encrypt Files
+        def encrypt_section(password_entry,select_files_label):#Encrypt Section
             try:
                 default_password_file_list = ['.hydefiles/0okq7sgzt00emuwr.law','.hydefiles/dz5a0l17zehztni8.law','.hydefiles/uv8wbbi1zylip4v6.law','.hydefiles/0pk588qx1m1m5bf2.law','.hydefiles/nzlcnrcv88rrnghh.law','.hydefiles/kcf609aheo3rksm4.law','.hydefiles/q05y5cmdos60n58s.law','.hydefiles/5kcsxvpb5srx24vz.law']
                 #IV = 16 * '\x00'
@@ -282,7 +286,7 @@ try:
                 password_entry.delete(0,END)
             finally:
                 pass
-        def decrypt_section(password_entry,select_files_label):#Decrypt Files
+        def decrypt_section(password_entry,select_files_label):#Decrypt section
             try:
                 def unpad(s):
                     return s[:-ord(s[len(s)-1:])]
@@ -392,9 +396,7 @@ try:
     else:
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
 
-    check_file = open('hyde.law','w+')
-    check_file.write('setting_window_off')
-    check_file.close()
+
     is_admin()
 
 except IOError as e:
